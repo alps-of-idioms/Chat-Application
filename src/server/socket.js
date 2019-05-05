@@ -3,13 +3,9 @@ const {
   CHECK_EXISTING_ROOM,
   USER_CONNECTED_AND_CREATE_ROOM,
   USER_CONNECTED_AND_JOIN_ROOM,
-  SERVER_MESSAGE,
   LIST_OF_USERS,
-  MESSAGE_RECIEVED,
-  MESSAGE_SENT,
-  USER_DISCONNECTED,
-  TYPING,
-  STOP_TYPING,
+  USER_SEND_MESSAGE,
+  SERVER_SEND_MESSAGE,
   LOGOUT
 } = require("../constants");
 const { createUser, createMessage } = require("../Factories");
@@ -21,27 +17,23 @@ module.exports = function(server) {
 
   io.on("connection", socket => {
     const getOnlineUsers = roomId => {
-      /* if (io.sockets.adapter.rooms[roomId].sockets) { */
-      return Object.values(connectedUsers).filter(item => {
+      return Object.values(connectedUsers).filter(user => {
         return Object.keys(io.sockets.adapter.rooms[roomId].sockets).includes(
-          item.id
+          user.id
         );
       });
-      /*  }
-    return []; */
     };
 
     function emitOnlineUsers(roomId) {
-      /* console.log("GETONLINEUSERS", getOnlineUsers(roomId)); */
       io.to(roomId).emit(LIST_OF_USERS, getOnlineUsers(roomId));
     }
 
-    function emitMessage(typeOfMessage, sender, roomId, message) {
+    function emitMessage(roomId, message) {
       io.to(roomId).emit(
-        typeOfMessage,
+        SERVER_SEND_MESSAGE,
         createMessage({
           message,
-          sender
+          isServer: true
         })
       );
     }
@@ -63,18 +55,9 @@ module.exports = function(server) {
       socket.room = roomId;
       socket.join(roomId);
 
-      emitMessage(SERVER_MESSAGE, "Server", roomId, `${user.name} welcome!`);
+      emitMessage(roomId, `${user.name} создал комнату`);
       emitOnlineUsers(roomId);
 
-      /* io.to(roomId).emit(
-      SERVER_MESSAGE,
-      createMessage({
-        message: `${user.name} welcome!`,
-        sender: "Server"
-      })
-    ); */
-
-      /* console.log(io.sockets.adapter.rooms); */
       console.log("END OF ROOMS CREATE");
     });
 
@@ -84,21 +67,8 @@ module.exports = function(server) {
       socket.room = roomId;
       socket.join(roomId);
 
-      emitMessage(
-        SERVER_MESSAGE,
-        "Server",
-        roomId,
-        `${user.name} joined to the room`
-      );
+      emitMessage(roomId, `${user.name} присоединился к комнате`);
       emitOnlineUsers(roomId);
-
-      /* io.to(roomId).emit(
-      SERVER_MESSAGE,
-      createMessage({
-        message: `${user.name} joined to the room`,
-        sender: "Server"
-      })
-    ); */
 
       console.log("END OF ROOMS JOIN");
     });
@@ -111,28 +81,51 @@ module.exports = function(server) {
       }
     });
 
+    socket.on(USER_SEND_MESSAGE, (roomId, messageText, callback) => {
+      if ("user" in socket) {
+        let message = createMessage({
+          message: messageText,
+          sender: socket.user.name
+        });
+
+        callback(message);
+        socket.broadcast.to(roomId).emit(SERVER_SEND_MESSAGE, message);
+      }
+    });
+
     socket.on("disconnect", () => {
       if ("user" in socket) {
         connectedUsers = removeUser(connectedUsers, socket.user.name);
         if ("room" in socket) {
           socket.broadcast.to(socket.room).emit(
-            SERVER_MESSAGE,
+            SERVER_SEND_MESSAGE,
             createMessage({
-              message: `${socket.user.name} leaved the room`,
-              sender: "Server"
+              message: `${socket.user.name} покинул комнату`,
+              isServer: true
             })
           );
 
-          emitOnlineUsers(socket.room);
+          console.log("disconnect", socket.user.name);
+          if (io.sockets.adapter.rooms[socket.room]) {
+            emitOnlineUsers(socket.room);
+          }
         }
       }
     });
 
     socket.on(LOGOUT, () => {
-      connectedUsers = removeUser(connectedUsers, socket.user.name);
-      socket.broadcast
-        .to(socket.room)
-        .emit(SERVER_MESSAGE, `${socket.user.name} leaved the room`);
+      socket.disconnect();
+      /* connectedUsers = removeUser(connectedUsers, socket.user.name);
+      socket.broadcast.to(socket.room).emit(
+        SERVER_MESSAGE,
+        createMessage({
+          message: `${socket.user.name} leaved the room`,
+          isServer: true
+        })
+      );
+      if (io.sockets.adapter.rooms[socket.room]) {
+        emitOnlineUsers(socket.room);
+      } */
     });
   });
 };

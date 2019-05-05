@@ -1,32 +1,44 @@
 import React from "react";
-/* import axios from 'axios' */
+import styled from "styled-components";
 import ChatContainer from "../chat-container";
+import LoginForm from "../login-form/";
+import ErrorRoom from "../error-room";
+import io from "socket.io-client";
+import { Grid } from "react-flexbox-grid";
+import Spinner from "../spinner";
 import {
   USER_CONNECTED_AND_CREATE_ROOM,
   LOGOUT,
   CHECK_EXISTING_ROOM,
   USER_CONNECTED_AND_JOIN_ROOM
 } from "../../constants";
-import LoginForm from "../login-form/";
-/* import io from "socket.io-client"; */
-import io from "socket.io-client";
 const uuidv4 = require("uuid/v4");
 
 const socketUrl = "http://localhost:6600";
 
+const Wrapper = styled.div`
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
 export default class Layout extends React.Component {
-  state = {
-    socket: null,
-    user: null,
-    roomId: null,
-    error: null
-  };
+  constructor(props) {
+    super(props);
+    this.state = {
+      socket: null,
+      user: null,
+      roomId: null,
+      error: null,
+      loading: null
+    };
+  }
 
   componentDidMount() {
-    const { match } = this.props.match.params;
-    /* if (match.url === "/") { */
-    this.initSocket();
-    /* } */
+    if (this.state.socket === null) {
+      this.initSocket();
+    }
   }
 
   initSocket = () => {
@@ -38,13 +50,14 @@ export default class Layout extends React.Component {
       console.log("Connected", socket);
     });
     if (match.path !== "/") {
+      this.setState({ loading: true });
       socket.emit(CHECK_EXISTING_ROOM, match.params.roomid, this.checkRoom);
     }
     this.setState({ socket });
   };
 
   checkRoom = (message, roomId) => {
-    this.setState({ error: message, roomId });
+    this.setState({ error: message, roomId, loading: false });
   };
 
   setUser = user => {
@@ -65,21 +78,26 @@ export default class Layout extends React.Component {
   logout = () => {
     const { socket } = this.state;
     socket.emit(LOGOUT);
-    this.setState({ user: null });
+    this.setState({ socket: io(socketUrl), user: null, roomId: null }, () => {
+      this.props.history.push(`/`);
+    });
   };
 
   render() {
-    const { socket, user, roomId, error } = this.state;
+    const { socket, user, roomId, error, loading } = this.state;
     const { path } = this.props.match;
-    if (error) return <div>Комнаты не существует</div>;
+    if (loading) return <Spinner />;
+    if (error) return <ErrorRoom />;
     return (
-      <div className="container">
+      <Grid style={{ width: "100%" }}>
         {!user ? (
-          <LoginForm
-            socket={socket}
-            setUser={this.setUser}
-            isInvited={path !== "/"}
-          />
+          <Wrapper>
+            <LoginForm
+              socket={socket}
+              setUser={this.setUser}
+              isInvited={path !== "/"}
+            />
+          </Wrapper>
         ) : (
           <ChatContainer
             socket={socket}
@@ -88,16 +106,7 @@ export default class Layout extends React.Component {
             logout={this.logout}
           />
         )}
-      </div>
+      </Grid>
     );
   }
 }
-
-/*
-заходит по "/"
-вводит имя
-верифицируется имя
-если ок то, создается комната(id комнаты на клиенте, передается серверу, )
-переадресация в адресной строке на комнату
-
-*/
