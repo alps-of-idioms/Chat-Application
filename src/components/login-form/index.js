@@ -117,7 +117,7 @@ export default class LoginForm extends React.Component {
                 id="username"
                 value={username}
                 onChange={this.handleChange}
-                placeholder={"MyUsername"}
+                placeholder={"Имя пользователя"}
               />
               <SubmitButton disabled={username === ""} type="submit">
                 Ввести
