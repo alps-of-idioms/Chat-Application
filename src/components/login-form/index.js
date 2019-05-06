@@ -43,7 +43,7 @@ export default class LoginForm extends React.Component {
   setUser = ({ user, isUser }) => {
     console.log(user, isUser);
     if (isUser) {
-      this.setError("User name taken");
+      this.setError("Имя пользователя уже занято");
     } else {
       this.setError("");
       this.props.setUser(user);
