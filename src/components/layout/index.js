@@ -1,5 +1,6 @@
 import React from "react";
-import styled from "styled-components";
+import PropTypes from "prop-types";
+import { Wrapper } from "./styles";
 import ChatContainer from "../chat-container";
 import LoginForm from "../login-form/";
 import ErrorRoom from "../error-room";
@@ -16,13 +17,6 @@ const uuidv4 = require("uuid/v4");
 
 const socketUrl = "http://localhost:6600";
 
-const Wrapper = styled.div`
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
 export default class Layout extends React.Component {
   constructor(props) {
     super(props);
@@ -35,27 +29,36 @@ export default class Layout extends React.Component {
     };
   }
 
+  static propTypes = {
+    //Пропсы react-router-dom
+    match: PropTypes.object,
+    location: PropTypes.object,
+    history: PropTypes.object
+  };
+
+  //Инициализация подключения
   componentDidMount() {
-    if (this.state.socket === null) {
-      this.initSocket();
-    }
+    this.initSocket();
   }
 
   initSocket = () => {
-    // Создаем менеджер
+    // Создаем подключение
     const socket = io(socketUrl);
     const { match } = this.props;
 
-    socket.on("connect", () => {
+    /* socket.on("connect", () => {
       console.log("Connected", socket);
-    });
+    }); */
+    //
     if (match.path !== "/") {
       this.setState({ loading: true });
+      //Проверка существует ли комната по указанному URL
       socket.emit(CHECK_EXISTING_ROOM, match.params.roomid, this.checkRoom);
     }
     this.setState({ socket });
   };
 
+  //Коллбек для отправки на сервер
   checkRoom = (message, roomId) => {
     this.setState({ error: message, roomId, loading: false });
   };
@@ -63,6 +66,7 @@ export default class Layout extends React.Component {
   setUser = user => {
     const { socket, roomId } = this.state;
     const { match } = this.props;
+    //Если пользователь пришел по сслылке присоединяем к комнате, если не то создаём новую
     if (match.path === "/") {
       let roomId = uuidv4();
       socket.emit(USER_CONNECTED_AND_CREATE_ROOM, user, roomId);
@@ -75,6 +79,7 @@ export default class Layout extends React.Component {
     }
   };
 
+  //Выход пользователя из комнаты и редирект
   logout = () => {
     const { socket } = this.state;
     socket.emit(LOGOUT);

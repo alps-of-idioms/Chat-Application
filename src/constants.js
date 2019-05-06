@@ -1,3 +1,6 @@
+/**
+ * @module constants костанты для событий
+ */
 module.exports = {
   CHECK_EXISTING_ROOM: "CHECK_EXISTING_ROOM",
   VERIFY_USER: "VERIFY_USER",

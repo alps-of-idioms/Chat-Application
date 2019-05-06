@@ -1,17 +1,6 @@
 import React from "react";
-import { SubmitButton, HeaderText } from "../login-form";
-import styled from "styled-components";
-
-const ForwardButton = styled(SubmitButton)`
-  max-width: initial;
-`;
-
-const Wrapper = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-`;
+import { HeaderText } from "../login-form/styles";
+import { ForwardButton, Wrapper } from "./styles";
 
 const ErrorRoom = () => {
   return (

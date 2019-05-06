@@ -1,55 +1,14 @@
 import React from "react";
+import PropTypes from "prop-types";
 import { VERIFY_USER } from "../../constants";
 import { Row, Col } from "react-flexbox-grid";
-import styled from "styled-components";
-
-const Input = styled.input`
-  min-width: 50%;
-  font-size: 1rem;
-  line-height: 1.5rem;
-  padding: 1rem;
-  border: 1px solid white;
-  border-radius: 0.25rem;
-  &::placeholder {
-    color: #a0b0b9;
-  }
-  @media only screen and (max-width: 576px) {
-    padding: 0.5rem;
-  }
-`;
-
-export const HeaderText = styled.h2`
-  margin-top: 0;
-  font-size: 2rem;
-  line-height: 2rem;
-  border-radius: 0.25rem;
-  @media only screen and (max-width: 576px) {
-    font-size: 1.5rem;
-  }
-`;
-
-export const SubmitButton = styled.button`
-  max-width: 20%;
-  padding: 1.25rem 1rem;
-  border: none;
-  font-weight: 900;
-  border-radius: 0.25rem;
-  margin-left: 0.25rem;
-  background-color: lightseagreen;
-  color: white;
-  &:disabled {
-    background-color: silver;
-  }
-  @media only screen and (max-width: 576px) {
-    padding: 0.75rem 0.25rem;
-  }
-`;
-
-const FormWrapper = styled.div`
-  display: flex;
-  align-items: center;
-  height: 100%;
-`;
+import {
+  Input,
+  HeaderText,
+  SubmitButton,
+  FormWrapper,
+  ErrorText
+} from "./styles";
 
 export default class LoginForm extends React.Component {
   textInput = React.createRef();
@@ -59,6 +18,16 @@ export default class LoginForm extends React.Component {
     error: ""
   };
 
+  static propTypes = {
+    // Объект соединения
+    socket: PropTypes.object,
+    // Коллбек для обновления стейта
+    setUser: PropTypes.func,
+    // Флаг указывающий перешел ли пользователь по URL
+    isInvited: PropTypes.bool
+  };
+
+  //Фокус на поле ввода после монтирования компонента
   componentDidMount() {
     this.focus();
   }
@@ -70,6 +39,7 @@ export default class LoginForm extends React.Component {
     socket.emit(VERIFY_USER, username, this.setUser);
   };
 
+  //Коллбек для отправки на сервер, добавляет пользователя в стейт
   setUser = ({ user, isUser }) => {
     console.log(user, isUser);
     if (isUser) {
@@ -80,6 +50,7 @@ export default class LoginForm extends React.Component {
     }
   };
 
+  //Коллбек устанавливающий текст ошибки в стейт
   setError = error => {
     this.setState({ error });
   };
@@ -112,8 +83,8 @@ export default class LoginForm extends React.Component {
                 )}
               </label>
               <Input
-                type="text"
                 ref={this.textInput}
+                type="text"
                 id="username"
                 value={username}
                 onChange={this.handleChange}
@@ -122,7 +93,7 @@ export default class LoginForm extends React.Component {
               <SubmitButton disabled={username === ""} type="submit">
                 Ввести
               </SubmitButton>
-              {error ? <div className="error">{error}</div> : null}
+              {error && <ErrorText>{error}</ErrorText>}
             </form>
           </FormWrapper>
         </Col>
